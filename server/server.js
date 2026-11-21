@@ -10,15 +10,22 @@ const PORT = process.env.PORT || 3000;
 const utils = require('./utils.js')
 const { loadEnvFile } = require('node:process');
 loadEnvFile('.env');
-console.log(process.env);
+
+const API_BASE_URL = (
+  process.env.BMC_API_BASE_URL || 'https://api-management-discovery-production.azure-api.net'
+).replace(/\/+$/, '');
 
 const CONFIG = {
-    vehicleUrl: process.env.RT_VEHICLE_API_URL,
-    alertUrl: process.env.RT_ALERT_API_URL,
-    updateUrl: process.env.RT_UPDATE_API_URL,
-    refreshInterval: process.env.RT_REFRESH_RATE || 10000, 
-    apiKey: process.env.API_KEY || '',
-    verboseLogging: process.env.VERBOSE_LOGGING === 'true' // by default false in prod
+    vehicleUrl: `${API_BASE_URL}/api/gtfs/feed/tec/rt/vehicle-position?format=protobuf`,
+    alertUrl: `${API_BASE_URL}/api/gtfs/feed/tec/rt/alert?format=protobuf`,
+    updateUrl: `${API_BASE_URL}/api/gtfs/feed/tec/rt/trip-update?format=protobuf`,
+    refreshIntervals: {
+      vehicles: 30_000,
+      alerts: 30_000,
+      updates: 30_000
+    },
+    apiKey: process.env.BMC_PARTNER_KEY || process.env.API_KEY || '',
+    verboseLogging: process.env.VERBOSE_LOGGING === 'true'
 };
 
 // Cache data into memory
@@ -51,13 +58,20 @@ function log(message, force = false) {
   }
 }
 
+function fetchOptions() {
+  return {
+    headers: {
+      'bmc-partner-key': CONFIG.apiKey
+    }
+  };
+}
+
 // ----------------------------------------------------------------------------------
 // Get and convert vehicles data from GTFS protobuf to JSON
 async function fetchAndConvertVehicles() {
   try {
     log(`[${new Date().toISOString()}] Fetching vehicle data...`);
-    const headers = {};
-    const response = await fetch(CONFIG.vehicleUrl, { headers });
+    const response = await fetch(CONFIG.vehicleUrl, fetchOptions());
     
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -79,7 +93,7 @@ async function fetchAndConvertVehicles() {
           vehicleId: vehicle.vehicle?.id || entity.id,
 	  latitude: position?.latitude || null,
           longitude: position?.longitude || null,
-	  speed: position?.speed || null,
+	  speed: position?.speed ?? null,
 	  currentStopSequence: vehicle.currentStopSequence || null,
           //timestamp: vehicle.timestamp?.toNumber() || null,
 	  stopId: vehicle.stopId || null,
@@ -114,47 +128,20 @@ async function fetchAndConvertVehicles() {
 
 
 // ----------------------------------------------------------------------------------
-// Get and forward raw GTFS protobuf data for alerts (later processed client-side)
-async function fetchAlertsRaw() {
-    try {
-	log(`[${new Date().toISOString()}] Fetching Alert data...`);
-	const headers = {};
-	const response = await fetch(CONFIG.alertUrl, { headers });
-      
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const buffer = await response.arrayBuffer();
-    
-    // Store raw buffer
-    cachedData.alertsRaw = buffer;
-    cachedData.lastUpdate.alertsRaw = new Date();
-    
-    log(`[${new Date().toISOString()}] Raw alerts data cached: ${buffer.byteLength} bytes`);
-    
-    return buffer;
-  } catch (error) {
-    console.error('Error fetching raw alerts data:', error.message);
-    return null;
-  }
-}
-
-
-// ----------------------------------------------------------------------------------
-// Get and convert alert data from GTFS protobuf (currently not used, lacking static gtfs data for readable cancellations)
+// Get and convert alert data from the GTFS-Realtime protobuf feed.
 async function fetchAndConvertAlerts() {
   try {
     log(`[${new Date().toISOString()}] Fetching alert data...`);
     
-    const headers = {};
-    const response = await fetch(CONFIG.alertUrl, { headers });
+    const response = await fetch(CONFIG.alertUrl, fetchOptions());
     
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     const buffer = await response.arrayBuffer();
+    cachedData.alertsRaw = buffer;
+    cachedData.lastUpdate.alertsRaw = new Date();
     const feed = GtfsRealtimeBindings.transit_realtime.FeedMessage.decode(
       new Uint8Array(buffer)
     );
@@ -223,8 +210,7 @@ async function fetchAndConvertUpdates() {
   try {
     log(`[${new Date().toISOString()}] Fetching trip updates data...`);
     
-    const headers = {};
-    const response = await fetch(CONFIG.updateUrl, { headers });
+    const response = await fetch(CONFIG.updateUrl, fetchOptions());
     
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -236,7 +222,6 @@ async function fetchAndConvertUpdates() {
     );
 
     // Convert into usable JSON
-    const formattedUpdateData = [];
     const delayByTrip = {};
 
     feed.entity.forEach(entity => {
@@ -248,10 +233,18 @@ async function fetchAndConvertUpdates() {
       if (!tripId) return;
 
       // get delay for trip 
-      const tripDelay = tripUpdate.delay || null;
+      const firstStopUpdate = tripUpdate.stopTimeUpdate?.find(stopUpdate =>
+        typeof stopUpdate.arrival?.delay === 'number'
+        || typeof stopUpdate.departure?.delay === 'number'
+      );
+      const tripDelay = typeof tripUpdate.delay === 'number'
+        ? tripUpdate.delay
+        : typeof firstStopUpdate?.departure?.delay === 'number'
+          ? firstStopUpdate.departure.delay
+          : firstStopUpdate?.arrival?.delay;
       
       // store in data structure
-      if (tripDelay !== null) {
+      if (typeof tripDelay === 'number') {
         delayByTrip[tripId] = Math.round(tripDelay/60); // delay in minutes
       }
 
@@ -289,7 +282,7 @@ async function fetchAndConvertUpdates() {
     cachedData.delayByTrip = delayByTrip;
     cachedData.lastUpdate.updates = new Date();
     
-    log(`[${new Date().toISOString()}] Trip updates data updated: ${formattedUpdateData.length} trips, ${Object.keys(delayByTrip).length} with delays`);
+    log(`[${new Date().toISOString()}] Trip updates data updated: ${Object.keys(delayByTrip).length} trips with delays`);
     
       //return { updates: formattedUpdateData, delayByTrip };
       return { updates: delayByTrip };
@@ -408,28 +401,33 @@ app.get('/', (req, res) => {
 // ----------------------------------------------------------------------------------
 // Init and start server
 async function init() {
+    if (!CONFIG.apiKey) {
+      throw new Error('Missing BMC_PARTNER_KEY (or legacy API_KEY) in server/.env');
+    }
+
     log('GTFS Cache Server starting...');
     log('Configuration:', {
       vehicleUrl: CONFIG.vehicleUrl,
       alertUrl: CONFIG.alertUrl,
       updateUrl: CONFIG.updateUrl,
-      refreshInterval: CONFIG.refreshInterval,
+      refreshIntervals: CONFIG.refreshIntervals,
       port: PORT
   });
 
     // Get first data when server starts
-    await Promise.all([
+    const initialData = await Promise.all([
 	fetchAndConvertVehicles(),
 	fetchAndConvertAlerts(),
-	fetchAlertsRaw(),
 	fetchAndConvertUpdates()
     ]);
+    if (initialData.some(data => data === null)) {
+      throw new Error('One or more initial Belgian Mobility feed requests failed.');
+    }
 
   // Update data
-    setInterval(fetchAndConvertVehicles, CONFIG.refreshInterval);
-    setInterval(fetchAndConvertAlerts, CONFIG.refreshInterval);
-    setInterval(fetchAlertsRaw, CONFIG.refreshInterval);
-    setInterval(fetchAndConvertUpdates, CONFIG.refreshInterval);
+    setInterval(fetchAndConvertVehicles, CONFIG.refreshIntervals.vehicles);
+    setInterval(fetchAndConvertAlerts, CONFIG.refreshIntervals.alerts);
+    setInterval(fetchAndConvertUpdates, CONFIG.refreshIntervals.updates);
 
   // Start HTTP server
   app.listen(PORT, () => {
@@ -448,4 +446,7 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 // Start
-init();
+init().catch(error => {
+  console.error('GTFS Cache Server startup failed:', error.message);
+  process.exitCode = 1;
+});

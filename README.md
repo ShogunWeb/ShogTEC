@@ -1,5 +1,5 @@
 ## Introduction to tecmap
-"Transports en Commun" map is a lightweight map to locate bus in real-time using open data. On the map below, buses coordinates are refreshed every 10 seconds and are colored according to delay (by comparing real-time data to static theoretical timetables which can be displayed by clicking on one bus: red > 5 minutes, 0 < orange < 5 minutes, green on time).  You can get timelines and other details when you click on a bus marker on the map.
+"Transports en Commun" map is a lightweight map to locate bus in real-time using open data. On the map below, bus coordinates are refreshed every 30 seconds and are colored according to delay (by comparing real-time data to static theoretical timetables which can be displayed by clicking on one bus: red > 5 minutes, 0 < orange < 5 minutes, green on time). You can get timelines and other details when you click on a bus marker on the map.
 ![tecmap](tecmap-liege.jpg?raw=true "Tecmap in Liège, Belgium")
 
 A simple filter (by bus line numbers) allows to only display the buses of interest (e.g. "21 58" will display buses following lines 21 and 58; "2?guill 58?guill" will display buses of line 2 that will pass through a stop which name includes "guill" as well as expected time schedule, and buses nr 58 that will pass through a stop name including "guill" which allow to organize your commute based on real-time data).
@@ -11,83 +11,53 @@ Alerts (disruptions) can be displayed for each line numbers to know about cancel
 The typical use cases include individuals wanting to know if their buses are on time to plan their trips, e.g. someone at home who doesn't want to wait 10 minutes outside in the cold, or someone who has the possibility of taking several different buses and wants to know which one will arrive first, or someone at their desk who wants to optimize their life and work until the last minute before their bus comes, or someone having a good time with a loved one but not wanting to miss the very last bus ;) or wanting to wait in a shady place rather than at the bus stop in direct sunlight. Another use case is someone who wants to discover new places they can reach with public transport without knowing the existing routes a priori. Please note no automatic planning is provided, you must use your mental calculation skills to construct your route, which in principle consumes less energy than running a routing algorithm on GAFAM servers. ;)
 
 ## Tech stack
-tecmap has been developed using HTML+CSS+Javascript only to be run through a single HTML page without any web framework. It relies on transit data locally stored, and real-time data coming from a remote API using ProtoBuf format (for data in Wallonia you have to submit a request to get the data here: [https://www.letec.be/View/Open_Data_of_TEC/4296](https://www.letec.be/View/Open_Data_of_TEC/4296)).
-This has been tested with GTFS static transit data for Wallonia in Belgium (TEC, downloaded from [https://beltac.tec-wl.be](https://beltac.tec-wl.be/))
-including routes and stops, and real-time traffic information assumed to be accessible through an API that returns it in ProtoBuf format.
+tecmap has been developed using HTML, CSS and JavaScript without a web framework. Static routes, stops and schedules are generated locally from TEC GTFS data; vehicle positions, trip updates and service alerts come from Belgian Mobility's GTFS-Realtime API in protobuf format.
 
 
-## Data preparation on the client side
-1. Create `data/` local directory
-   
-2. Download into `data/` local directory GTFS static routes and stops data (latest version from [https://beltac.tec-wl.be](https://beltac.tec-wl.be/Current%20GTFS/) or [https://busmaps.com/en/belgium/TEC-Transit/tec-transit](https://busmaps.com/en/belgium/TEC-Transit/tec-transit) )
-   
-3. Convert GTFS static and dynamic data using `python3 convert_data.py` script:
+## TEC data from Belgian Mobility
 
-    2.1 static `data/stops.txt` will be converted to `data/stops.js`  (contains names of bus stops)
-   
-    2.2 dynamic `data/stop_times.txt` (contains routes with sequences of bus stops and arrival times) will be converted to multiple `data/stop_times.js` files split by days and regions using filter_strings 
-   The original data is split into multiple .js files using the filter_strings and regions to avoid loading too much data in the browser. In the front-end tecmap.html the appropriate js file is loaded on-the-fly according to the day type (weekday, sunday, saturday, wednesday, holidays or not) and map regions (in Wallonia). Regions and day type strings are hard-coded both in the conversion script and front-end html page and should be adapted to your public transport provider.
+The [Belgian Mobility data portal](https://data.belgianmobility.io) provides TEC/LETEC static GTFS and real-time feeds. The developer portal issues primary/secondary subscription keys; requests use the `bmc-partner-key` header.
 
-    2.3 static `data/routes.txt` will be converted to `data/routes.js`  (contains route short and long names)
+Create a subscription key in the [developer portal](https://api-management-opendata-production.developer.azure-api.net/). Keep it on the server; never put it in `config.js` or browser code. Copy `server/.env.example` to `server/.env`, then set `BMC_PARTNER_KEY` to your primary or secondary key.
 
-4. Get the latest version of https://github.com/google/transit/blob/master/gtfs-realtime/proto/gtfs-realtime.proto (ProtoBuf file definition) and copy it in data/
+### Static routes, stops and schedules
 
+The TEC GTFS zip is updated daily. From the repository root, run:
 
-## Edit tecmap.html
-1. Edit the `loadScheduleFile()` function in **tecmap.html** if local files are not located in data/ or named in another way if you modified the convert_data.py script.
-3. Edit **RT_VEHICLE_API_URL**, **RT_ALERT_API_URL**, **RT_UPDATE_API_URL** in **config.js** so that it refers to the API endpoints that returns real-time traffic data (vehicle positions, alerts, and updates/delays) either in ProtoBuf format (by default) using the aforementioned Protocol definition file, or in JSON format (if you install the cache server in which case you should edit tecmap.html and set JSON_DATA_FORMAT=1;). If the remote data format is ProtoBug functions transformVehicleGTFSData and transformAlertGTFSData convert the Protobuf data into a JSON structure for easier manipulation, e.g. formatted as follows for Vehicles:
-
-```
-{
-  "vehicles": [
-    {
-      "vehicleId": "3427",
-      "latitude": 50.46605682373047,
-      "longitude": 4.186469554901123,
-      "speed": null,
-      "currentStopSequence": 31,
-      "timestamp": 1743537125,
-      "stopId": "H2ll179f",
-      "trip": {
-        "tripId": "47395794-H_2025-H25_P2-Sem-N-3-03",
-        "startTime": "21:12:00",
-        "startDate": "20250401",
-        "routeId": "H2030-22858",
-        "route_short_name": "30",
-        "route_long_name": "Strépy-Bracquegnies - Anderlues"
-      },
-      "agency": "H2030"
-    },
-    {
-      "vehicleId": "3231",
-      "latitude": 50.45465087890625,
-      "longitude": 3.9430530071258545,
-      "speed": 22,
-      "currentStopSequence": 40,
-      "timestamp": 1743537049,
-      "stopId": "H1ms401a",
-      "trip": {
-        "tripId": "47397951-H_2025-H25_P2-Sem-N-3-03",
-        "startTime": "21:17:00",
-        "startDate": "20250401",
-        "routeId": "H1022-22900",
-        "route_short_name": "22",
-        "route_long_name": "Mons - Binche"
-      },
-      "agency": "H1022"
-    },
-   ...
+```sh
+python3 -m pip install -r requirements.txt
+python3 scripts/sync_gtfs.py
 ```
 
+The script downloads `/api/gtfs/feed/tec/static`, validates and extracts the GTFS files, downloads the GTFS-Realtime protobuf schema, then runs the existing converters to refresh stops, routes, schedules and line geometries under `data/`. The large generated `data/` directory is local and is not committed to Git. Run this command daily on the host that serves the map to keep its static data current.
 
-3. Edit **TILE_API_KEY** in **config.js** if you want to use the Transport raster tiles from Thunderforest.com [https://www.thunderforest.com/maps/transport/](https://www.thunderforest.com/maps/transport/). For individuals you can have a free key with a limited number of tile requests per month which should be enough for regular use. Otherwise default OSM [https://openstreetmap.org/](https://openstreetmap.org/) raster tiles will be used.
+### Real-time positions, delays and alerts
+
+The cache server fetches the TEC GTFS-Realtime feeds with the subscription key and exposes the JSON/Protobuf endpoints already used by the map:
+
+| API feed | Upstream endpoint | Refresh |
+|---|---|---:|
+| Vehicle positions | `/api/gtfs/feed/tec/rt/vehicle-position?format=protobuf` | 30 seconds |
+| Trip updates and delays | `/api/gtfs/feed/tec/rt/trip-update?format=protobuf` | 30 seconds |
+| Service alerts | `/api/gtfs/feed/tec/rt/alert?format=protobuf` | 30 seconds |
+
+The cache server sends the key in the `bmc-partner-key` header. The Standard tier allows 12,000 requests/day; polling these three feeds every 30 seconds uses about 8,640 requests/day.
+
+Run the cache server from its directory so it loads `server/.env`:
+
+```sh
+cd server
+npm install
+npm start
+```
+
+The browser continues to call the cache server URLs configured in `config.js`; it never receives the Belgian Mobility key. Set `RT_VEHICLE_API_URL`, `RT_ALERT_API_URL`, and `RT_UPDATE_API_URL` there only if your cache server uses different public URLs.
 
 ## Run locally
-Open the tecmap.html page in your desktop computer's browser. Or copy the HTML page and data/ to a web server for remote access e.g. using your smartphone.
 
+Refresh static data with `python3 scripts/sync_gtfs.py`, then serve the repository root over HTTP and open `tecmap.html`. The app uses the locally generated `data/` assets and the real-time cache server.
 
-## Run a cache server
-In the server/ directory, we provide prototype code for a simple server installation that acts as a cache so that multiple clients can access real-time data using the same unique API key you obtained from your public transport data provider. It is useful when you want to share the client map with multiple individuals to avoid API limitations (too many requests). This server requests data every RT_REFRESH_RATE to the main data source API endpoitns specified in the .env file, and provides public API endpoints: /status , api/alerts/raw (protobuf), api/vehicles (json), api/delays (json). The servers uses node.js and nginx, configuration files are provided.
+Edit `TILE_API_KEY` in `config.js` if you want to use Thunderforest transport tiles. Otherwise, the default OpenStreetMap tile layer is used.
 
 ## Future plans, contact
 I am aware of the limitations of such a client-side approach. 
@@ -96,7 +66,7 @@ Please feel free to submit Issues or contact me.
 
 ## Acknowledgments
 The map uses the open access [http://openstreetmap.org/](http://openstreetmap.org/) data and the open-source [https://leafletjs.com/](https://leafletjs.com/) Javascript library.
-We use open data from [TEC](https://www.letec.be/) without affiliation to this organization.
+Transit data source: LETEC (TEC) via the [Belgian Mobility Open Data Portal](https://data.belgianmobility.io/), CC BY 4.0. Include the data update date in deployments when available.
 
 
 

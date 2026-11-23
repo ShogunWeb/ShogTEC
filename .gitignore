@@ -2,3 +2,6 @@
 
 /server/.env
 /scripts/update_gtfs.config.json
+
+__pycache__/
+*.py[cod]

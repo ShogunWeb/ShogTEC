@@ -547,6 +547,31 @@
 	    return `${new Intl.NumberFormat("fr-BE", { maximumFractionDigits: 1 }).format(size)} ${units[unitIndex]}`;
 	}
 
+	async function estimateAppCacheBytes() {
+	    if (!("caches" in window)) return null;
+
+	    const cacheNames = (await caches.keys()).filter(name => name.startsWith("tecmap-shell-"));
+	    let bytes = 0;
+	    let entries = 0;
+	    let hasUnknownSizes = false;
+
+	    for (const cacheName of cacheNames) {
+		const cache = await caches.open(cacheName);
+		const responses = await cache.matchAll();
+		for (const response of responses) {
+		    entries += 1;
+		    const contentLength = response.headers.get("content-length");
+		    if (contentLength && /^\d+$/.test(contentLength)) {
+			bytes += Number(contentLength);
+		    } else {
+			hasUnknownSizes = true;
+		    }
+		}
+	    }
+
+	    return { bytes, entries, hasUnknownSizes };
+	}
+
 	function renderAppVersion() {
 	    const versionText = `Version ${APP_VERSION} · ${localCacheUsageText}`;
 	    const mobileVersionNode = document.getElementById("settings-version-mobile");
@@ -562,23 +587,40 @@
 	}
 
 	async function updateLocalCacheUsage() {
-	    if (!navigator.storage || typeof navigator.storage.estimate !== "function") {
-		localCacheUsageText = "Cache local : non mesurable";
-		renderAppVersion();
-		return;
+	    let estimatedUsage = 0;
+	    try {
+		if (navigator.storage && typeof navigator.storage.estimate === "function") {
+		    const estimate = await navigator.storage.estimate();
+		    if (typeof estimate.usage === "number") {
+			estimatedUsage = estimate.usage;
+		    }
+		}
+	    } catch (error) {
+		console.warn("Impossible d'estimer le stockage local", error);
 	    }
 
-	    try {
-		const estimate = await navigator.storage.estimate();
-		localCacheUsageText = typeof estimate.usage === "number"
-		    ? `Cache local ≈ ${formatStorageBytes(estimate.usage)}`
-		    : "Cache local : non mesurable";
-		renderAppVersion();
-	    } catch (error) {
-		console.warn("Impossible de mesurer le stockage local", error);
-		localCacheUsageText = "Cache local : non mesurable";
-		renderAppVersion();
+	    if (estimatedUsage > 0) {
+		localCacheUsageText = `Cache local ≈ ${formatStorageBytes(estimatedUsage)}`;
+	    } else {
+		try {
+		    const cacheEstimate = await estimateAppCacheBytes();
+		    if (!cacheEstimate) {
+			localCacheUsageText = "Cache local : non mesurable";
+		    } else if (cacheEstimate.entries === 0) {
+			localCacheUsageText = "Cache local : vide";
+		    } else if (cacheEstimate.bytes > 0) {
+			const incomplete = cacheEstimate.hasUnknownSizes ? "+" : "";
+			localCacheUsageText = `Cache local ≈ ${formatStorageBytes(cacheEstimate.bytes)}${incomplete}`;
+		    } else {
+			localCacheUsageText = "Cache local : taille non fournie";
+		    }
+		} catch (error) {
+		    console.warn("Impossible de lire le cache de l'application", error);
+		    localCacheUsageText = "Cache local : non mesurable";
+		}
 	    }
+
+	    renderAppVersion();
 	}
 
 	renderAppVersion();

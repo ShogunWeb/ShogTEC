@@ -59,7 +59,7 @@ The server README documents Node.js 24.13.1 as the tested version. The project h
 - `server/.env.example` currently includes sample `RT_*` values for reference. Treat `config.js` as the source of truth for the browser URLs and refresh rate.
 - The frontend expects the cache server endpoints `/api/vehicles`, `/api/alerts/raw`, and `/api/delays`. The server also exposes `/api/alerts`, `/`, and `/status`.
 - `TILE_API_KEY` in `config.js` is optional; the README describes OpenStreetMap as the default map layer.
-- The version line displays an approximate `navigator.storage.estimate()` usage for the site origin; it includes Cache Storage and other local site data, not only the service-worker cache.
+- The version line displays an approximate `navigator.storage.estimate()` usage for the site origin; if it reports zero, the UI falls back to summing available `Content-Length` headers for TECmap service-worker cache entries. Unknown entries are marked with `+`.
 - Avoid running the live GTFS sync unless explicitly needed: it makes external requests and writes generated files under `data/`.
 
 ## Working practices

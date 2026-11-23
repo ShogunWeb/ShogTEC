@@ -46,12 +46,12 @@ MANAGED_PATTERNS = (
 )
 
 
-def load_api_key() -> str:
+def load_api_key(env_file: Path | None = None) -> str:
     api_key = os.environ.get("BMC_PARTNER_KEY") or os.environ.get("API_KEY")
     if api_key and api_key.strip():
         return api_key.strip()
 
-    env_file = ROOT / "server" / ".env"
+    env_file = env_file or ROOT / "server" / ".env"
     if env_file.is_file():
         for line in env_file.read_text(encoding="utf-8").splitlines():
             name, separator, value = line.partition("=")
@@ -68,7 +68,9 @@ def load_api_key() -> str:
             if value:
                 return value
 
-    raise SystemExit("Set BMC_PARTNER_KEY or API_KEY in the environment or server/.env.")
+    raise SystemExit(
+        f"Set BMC_PARTNER_KEY or API_KEY in the environment or {env_file}."
+    )
 
 
 def download_gtfs(token: str, archive_path: Path) -> None:

@@ -26,7 +26,13 @@ The TEC GTFS zip is updated daily. From the repository root, run:
 
 ```sh
 python3 -m pip install -r requirements.txt
-python3 scripts/sync_gtfs.py
+python3 scripts/update_gtfs.py
+```
+
+By default, the update script reads `BMC_PARTNER_KEY` from `server/.env`. To keep the key outside the repository without passing a path each time, copy `scripts/update_gtfs.config.example.json` to `scripts/update_gtfs.config.json` and set its `env_file` path. The local config file is ignored by Git. You can also specify a one-time override:
+
+```sh
+python3 scripts/update_gtfs.py --env-file /path/to/private/.env
 ```
 
 The script downloads `/api/gtfs/feed/tec/static`, validates and extracts the GTFS files, downloads the GTFS-Realtime protobuf schema, then runs the existing converters to refresh stops, routes, schedules and line geometries under `data/`. The large generated `data/` directory is local and is not committed to Git. Run this command daily on the host that serves the map to keep its static data current.

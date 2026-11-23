@@ -34,8 +34,10 @@ Refresh static data (requires network access and a Belgian Mobility subscription
 
 ```sh
 python3 -m pip install -r requirements.txt
-python3 scripts/sync_gtfs.py
+python3 scripts/update_gtfs.py
 ```
+
+To read the Belgian Mobility key from an env file outside the repository, copy `scripts/update_gtfs.config.example.json` to the ignored `scripts/update_gtfs.config.json` and set its `env_file` path. `--env-file /path/to/private/.env` can override it for one run.
 
 Run the cache server from its directory so `loadEnvFile(".env")` can find the file:
 

@@ -1,3 +1,4 @@
 /server/node_modules/
 
 /server/.env
+/scripts/update_gtfs.config.json

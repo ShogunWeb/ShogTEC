@@ -61,7 +61,7 @@ The browser continues to call the cache server URLs configured in `config.js`; i
 
 ## Run locally
 
-Refresh static data with `python3 scripts/update_gtfs.py`, then serve the repository root over HTTP and open `tecmap.html`. The app uses the locally generated `data/` assets and the real-time cache server. The version line also shows an approximate estimate of this site's local browser storage, including its cache and other site data; it falls back to cache response lengths when the browser reports zero and those lengths are available.
+Refresh static data with `python3 scripts/update_gtfs.py`, then serve the repository root over HTTP and open `tecmap.html`. The app uses the locally generated `data/` assets and the real-time cache server. The version line also shows an approximate estimate of this site's local browser storage, including its cache and other site data; if the browser reports zero, the app estimates its service-worker cache from available response lengths. Browsers or privacy modes that withhold the required storage APIs may show that the cache size is unavailable.
 
 Edit `TILE_API_KEY` in `config.js` if you want to use Thunderforest transport tiles. Otherwise, the default OpenStreetMap tile layer is used.
 

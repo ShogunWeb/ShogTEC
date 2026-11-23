@@ -59,13 +59,15 @@ The server README documents Node.js 24.13.1 as the tested version. The project h
 - `server/.env.example` currently includes sample `RT_*` values for reference. Treat `config.js` as the source of truth for the browser URLs and refresh rate.
 - The frontend expects the cache server endpoints `/api/vehicles`, `/api/alerts/raw`, and `/api/delays`. The server also exposes `/api/alerts`, `/`, and `/status`.
 - `TILE_API_KEY` in `config.js` is optional; the README describes OpenStreetMap as the default map layer.
-- The version line displays an approximate `navigator.storage.estimate()` usage for the site origin; if it reports zero, the UI falls back to summing available `Content-Length` headers for TECmap service-worker cache entries. Unknown entries are marked with `+`.
+- The version line displays an approximate `navigator.storage.estimate()` usage for the site origin. If that reports zero, the UI sums available `Content-Length` headers for TECmap service-worker cache entries, reading Cache Storage directly or via a message to the active service worker when needed. Unknown entry sizes are marked with `+`; this is not the exact disk usage.
+- On the user's iPhone, Lockdown Mode made `navigator.serviceWorker` and `window.caches` unavailable in both the installed web app and a normal Safari tab; a site-specific Lockdown Mode exception restored the measurement. The page cannot measure the cache while those APIs are unavailable, and it cannot detect Lockdown Mode itself.
 - Avoid running the live GTFS sync unless explicitly needed: it makes external requests and writes generated files under `data/`.
 
 ## Working practices
 
 - Inspect the relevant code and current Git changes before editing; preserve unrelated local changes.
 - Keep changes focused and follow existing plain-JavaScript/Python patterns.
+- When changing frontend or service-worker behavior, update `TECMAP_VERSION` in `version.js` so deployed clients refresh their service-worker cache; deploy the changed frontend files and version together.
 - Do not add a framework or build system for the frontend without a requirement.
 - Run the narrowest relevant test command after code changes. For documentation-only changes, tests are generally unnecessary.
 - Generated assets and credentials are not source-code edits; do not commit generated `data/` files or `server/.env` unless the task explicitly requires a reviewed change to that policy.

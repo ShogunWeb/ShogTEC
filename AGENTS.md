@@ -12,6 +12,7 @@ TECmap is a lightweight public-transit map for TEC in Belgium. The frontend is p
 - `scripts/sync_gtfs.py`: downloads and validates the static TEC GTFS feed, then regenerates assets in `data/`.
 - `convert_data.py` and `scripts/generate_line_shapes.py`: convert downloaded GTFS text files into browser-ready JavaScript assets.
 - `server/server.js`: Express cache server. It fetches TEC GTFS-Realtime protobuf feeds from Belgian Mobility, decodes/transforms them, caches results in memory, and exposes endpoints for the browser.
+- `service-worker.js`: caches the app shell and same-origin GET responses in the browser's Cache Storage.
 - `server/.env.example`: example server configuration. `server/.env` is ignored by Git and must never be committed.
 - `tests/test_sync_gtfs.py`: unit tests for GTFS archive extraction and validation.
 
@@ -58,6 +59,7 @@ The server README documents Node.js 24.13.1 as the tested version. The project h
 - `server/.env.example` currently includes sample `RT_*` values for reference. Treat `config.js` as the source of truth for the browser URLs and refresh rate.
 - The frontend expects the cache server endpoints `/api/vehicles`, `/api/alerts/raw`, and `/api/delays`. The server also exposes `/api/alerts`, `/`, and `/status`.
 - `TILE_API_KEY` in `config.js` is optional; the README describes OpenStreetMap as the default map layer.
+- The version line displays an approximate `navigator.storage.estimate()` usage for the site origin; it includes Cache Storage and other local site data, not only the service-worker cache.
 - Avoid running the live GTFS sync unless explicitly needed: it makes external requests and writes generated files under `data/`.
 
 ## Working practices

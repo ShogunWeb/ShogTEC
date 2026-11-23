@@ -534,19 +534,57 @@
    const isMobileLayout = window.matchMedia("(max-width: 768px)").matches;
    let appState = loadSavedState();
 
+	let localCacheUsageText = "Cache local : mesure en cours";
+
+	function formatStorageBytes(bytes) {
+	    const units = ["o", "Ko", "Mo", "Go", "To"];
+	    let size = bytes;
+	    let unitIndex = 0;
+	    while (size >= 1024 && unitIndex < units.length - 1) {
+		size /= 1024;
+		unitIndex += 1;
+	    }
+	    return `${new Intl.NumberFormat("fr-BE", { maximumFractionDigits: 1 }).format(size)} ${units[unitIndex]}`;
+	}
+
 	function renderAppVersion() {
-	    const versionText = `Version ${APP_VERSION}`;
+	    const versionText = `Version ${APP_VERSION} · ${localCacheUsageText}`;
 	    const mobileVersionNode = document.getElementById("settings-version-mobile");
 	    const desktopVersionNode = document.getElementById("settings-version-desktop");
 	    if (mobileVersionNode) {
 		mobileVersionNode.textContent = versionText;
+		mobileVersionNode.title = "Estimation du stockage de ce site dans le navigateur, cache et autres données locales compris";
 	    }
 	    if (desktopVersionNode) {
 		desktopVersionNode.textContent = versionText;
+		desktopVersionNode.title = "Estimation du stockage de ce site dans le navigateur, cache et autres données locales compris";
+	    }
+	}
+
+	async function updateLocalCacheUsage() {
+	    if (!navigator.storage || typeof navigator.storage.estimate !== "function") {
+		localCacheUsageText = "Cache local : non mesurable";
+		renderAppVersion();
+		return;
+	    }
+
+	    try {
+		const estimate = await navigator.storage.estimate();
+		localCacheUsageText = typeof estimate.usage === "number"
+		    ? `Cache local ≈ ${formatStorageBytes(estimate.usage)}`
+		    : "Cache local : non mesurable";
+		renderAppVersion();
+	    } catch (error) {
+		console.warn("Impossible de mesurer le stockage local", error);
+		localCacheUsageText = "Cache local : non mesurable";
+		renderAppVersion();
 	    }
 	}
 
 	renderAppVersion();
+	updateLocalCacheUsage();
+	setTimeout(updateLocalCacheUsage, 3000);
+	setInterval(updateLocalCacheUsage, 60 * 1000);
 
    if ("serviceWorker" in navigator) {
 	 let shouldReloadForUpdate = false;

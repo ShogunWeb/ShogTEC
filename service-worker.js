@@ -14,6 +14,29 @@ const APP_SHELL = [
   "./icon-512.png"
 ];
 
+async function estimateAppCacheBytes() {
+  const cacheNames = (await caches.keys()).filter(name => name.startsWith("tecmap-shell-"));
+  let bytes = 0;
+  let entries = 0;
+  let hasUnknownSizes = false;
+
+  for (const cacheName of cacheNames) {
+    const cache = await caches.open(cacheName);
+    const responses = await cache.matchAll();
+    for (const response of responses) {
+      entries += 1;
+      const contentLength = response.headers.get("content-length");
+      if (contentLength && /^\d+$/.test(contentLength)) {
+        bytes += Number(contentLength);
+      } else {
+        hasUnknownSizes = true;
+      }
+    }
+  }
+
+  return { bytes, entries, hasUnknownSizes };
+}
+
 self.addEventListener("install", event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL))
@@ -21,6 +44,22 @@ self.addEventListener("install", event => {
 });
 
 self.addEventListener("message", event => {
+  if (event.data && event.data.type === "ESTIMATE_APP_CACHE") {
+    const replyPort = event.ports[0];
+    if (!replyPort) return;
+
+    event.waitUntil(
+      estimateAppCacheBytes()
+        .then(result => replyPort.postMessage(result))
+        .catch(error => {
+          console.error("Impossible de mesurer le cache de l'application", error);
+          replyPort.postMessage({ error: true });
+        })
+        .finally(() => replyPort.close())
+    );
+    return;
+  }
+
   if (event.data && event.data.type === "SKIP_WAITING") {
     self.skipWaiting();
   }

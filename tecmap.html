@@ -548,28 +548,82 @@
 	}
 
 	async function estimateAppCacheBytes() {
-	    if (!("caches" in window)) return null;
+	    const cacheStorage = window.caches;
+	    let pageReadError;
+	    if (cacheStorage) {
+		try {
+		    const cacheNames = (await cacheStorage.keys()).filter(name => name.startsWith("tecmap-shell-"));
+		    let bytes = 0;
+		    let entries = 0;
+		    let hasUnknownSizes = false;
 
-	    const cacheNames = (await caches.keys()).filter(name => name.startsWith("tecmap-shell-"));
-	    let bytes = 0;
-	    let entries = 0;
-	    let hasUnknownSizes = false;
-
-	    for (const cacheName of cacheNames) {
-		const cache = await caches.open(cacheName);
-		const responses = await cache.matchAll();
-		for (const response of responses) {
-		    entries += 1;
-		    const contentLength = response.headers.get("content-length");
-		    if (contentLength && /^\d+$/.test(contentLength)) {
-			bytes += Number(contentLength);
-		    } else {
-			hasUnknownSizes = true;
+		    for (const cacheName of cacheNames) {
+			const cache = await cacheStorage.open(cacheName);
+			const responses = await cache.matchAll();
+			for (const response of responses) {
+			    entries += 1;
+			    const contentLength = response.headers.get("content-length");
+			    if (contentLength && /^\d+$/.test(contentLength)) {
+				bytes += Number(contentLength);
+			    } else {
+				hasUnknownSizes = true;
+			    }
+			}
 		    }
+
+		    return { bytes, entries, hasUnknownSizes };
+		} catch (error) {
+		    pageReadError = error;
 		}
 	    }
 
-	    return { bytes, entries, hasUnknownSizes };
+	    const serviceWorkerContainer = navigator.serviceWorker;
+	    if (!serviceWorkerContainer) {
+		if (pageReadError) throw pageReadError;
+		return { unavailable: true, reason: "service-worker" };
+	    }
+	    if (typeof MessageChannel !== "function") {
+		return { unavailable: true, reason: "message-channel" };
+	    }
+
+	    let worker = serviceWorkerContainer.controller;
+	    if (!worker) {
+		const registration = await Promise.race([
+		    serviceWorkerContainer.ready,
+		    new Promise(resolve => setTimeout(() => resolve(null), 5000))
+		]);
+		worker = registration && registration.active;
+	    }
+	    if (!worker) return { unavailable: true, reason: "worker" };
+
+	    return new Promise((resolve, reject) => {
+		const channel = new MessageChannel();
+		const timeoutId = setTimeout(() => {
+		    channel.port1.close();
+		    reject(new Error("Le Service Worker n'a pas répondu à la demande de mesure"));
+		}, 5000);
+		channel.port1.onmessage = event => {
+		    clearTimeout(timeoutId);
+		    channel.port1.close();
+		    if (event.data && event.data.error) {
+			reject(new Error("Le Service Worker n'a pas pu lire son cache"));
+		    } else {
+			resolve(event.data);
+		    }
+		};
+		channel.port1.onmessageerror = () => {
+		    clearTimeout(timeoutId);
+		    channel.port1.close();
+		    reject(new Error("Réponse de mesure du Service Worker illisible"));
+		};
+		try {
+		    worker.postMessage({ type: "ESTIMATE_APP_CACHE" }, [channel.port2]);
+		} catch (error) {
+		    clearTimeout(timeoutId);
+		    channel.port1.close();
+		    reject(error);
+		}
+	    });
 	}
 
 	function renderAppVersion() {
@@ -604,8 +658,13 @@
 	    } else {
 		try {
 		    const cacheEstimate = await estimateAppCacheBytes();
-		    if (!cacheEstimate) {
-			localCacheUsageText = "Cache local : non mesurable";
+		    if (cacheEstimate.unavailable) {
+			const unavailableMessages = {
+			    worker: "Cache local : Service Worker inactif",
+			    "message-channel": "Cache local : canal de mesure indisponible",
+			    "service-worker": "Cache local : Service Worker indisponible"
+			};
+			localCacheUsageText = unavailableMessages[cacheEstimate.reason] || "Cache local : non mesurable";
 		    } else if (cacheEstimate.entries === 0) {
 			localCacheUsageText = "Cache local : vide";
 		    } else if (cacheEstimate.bytes > 0) {
@@ -616,7 +675,7 @@
 		    }
 		} catch (error) {
 		    console.warn("Impossible de lire le cache de l'application", error);
-		    localCacheUsageText = "Cache local : non mesurable";
+		    localCacheUsageText = "Cache local : lecture impossible";
 		}
 	    }
 

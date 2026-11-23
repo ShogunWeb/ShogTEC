@@ -1,3 +1,3 @@
 (function (globalScope) {
-  globalScope.TECMAP_VERSION = "23 novembre 2026 - 23:52";
+  globalScope.TECMAP_VERSION = "24 novembre 2026 - 00:04";
 })(typeof self !== "undefined" ? self : window);

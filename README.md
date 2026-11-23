@@ -35,7 +35,7 @@ By default, the update script reads `BMC_PARTNER_KEY` from `server/.env`. To kee
 python3 scripts/update_gtfs.py --env-file /path/to/private/.env
 ```
 
-The script downloads `/api/gtfs/feed/tec/static`, validates and extracts the GTFS files, downloads the GTFS-Realtime protobuf schema, then runs the existing converters to refresh stops, routes, schedules and line geometries under `data/`. The large generated `data/` directory is local and is not committed to Git. Run this command daily on the host that serves the map to keep its static data current.
+The script downloads `/api/gtfs/feed/tec/static`, validates and extracts the GTFS files, downloads the GTFS-Realtime protobuf schema, then runs the existing converters to refresh stops, routes, schedules and line geometries under `data/`. The large generated `data/` directory is local and is not committed to Git. Run this periodically from a machine with Python, network access and the API key, then deploy the updated assets from `data/` to the website.
 
 ### Real-time positions, delays and alerts
 
@@ -61,7 +61,7 @@ The browser continues to call the cache server URLs configured in `config.js`; i
 
 ## Run locally
 
-Refresh static data with `python3 scripts/sync_gtfs.py`, then serve the repository root over HTTP and open `tecmap.html`. The app uses the locally generated `data/` assets and the real-time cache server.
+Refresh static data with `python3 scripts/update_gtfs.py`, then serve the repository root over HTTP and open `tecmap.html`. The app uses the locally generated `data/` assets and the real-time cache server.
 
 Edit `TILE_API_KEY` in `config.js` if you want to use Thunderforest transport tiles. Otherwise, the default OpenStreetMap tile layer is used.
 

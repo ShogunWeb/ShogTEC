@@ -8,6 +8,31 @@ from scripts import generate_line_shapes
 
 
 class GenerateLineShapesTests(unittest.TestCase):
+    def test_simplifies_points_within_five_meter_deviation(self):
+        points = [
+            (0.0, 0.0),
+            (0.000036, 0.00018),
+            (0.0, 0.00036),
+        ]
+
+        simplified = generate_line_shapes.simplify_points(points)
+
+        self.assertEqual(simplified, [[0.0, 0.0], [0.0, 0.00036]])
+
+    def test_preserves_points_over_five_meter_deviation(self):
+        points = [
+            (0.0, 0.0),
+            (0.000054, 0.00018),
+            (0.0, 0.00036),
+        ]
+
+        simplified = generate_line_shapes.simplify_points(points)
+
+        self.assertEqual(
+            simplified,
+            [[0.0, 0.0], [0.00005, 0.00018], [0.0, 0.00036]],
+        )
+
     def test_generates_region_shapes_from_prefixed_tec_route_ids(self):
         with tempfile.TemporaryDirectory() as temporary:
             data_dir = Path(temporary)

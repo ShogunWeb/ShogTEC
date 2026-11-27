@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import csv
 import json
+import math
 from collections import defaultdict
 from pathlib import Path
 
@@ -40,7 +41,7 @@ OUTPUT_REGIONS = ["LG", "CHOI", "BW", "H", "NAM", "LUX"]
 
 # Keep geometry payload bounded.
 MAX_SHAPES_PER_LINE = 10
-MAX_POINTS_PER_SHAPE = 120
+MAX_DEVIATION_METERS = 5
 ROUND_DIGITS = 5
 
 
@@ -48,20 +49,64 @@ def simplify_points(points: list[tuple[float, float]]) -> list[list[float]]:
     if len(points) <= 2:
         return [[round(lat, ROUND_DIGITS), round(lon, ROUND_DIGITS)] for lat, lon in points]
 
-    stride = max(1, len(points) // MAX_POINTS_PER_SHAPE)
-    sampled = [points[0]]
-    for i in range(1, len(points) - 1):
-        if i % stride == 0:
-            sampled.append(points[i])
-    sampled.append(points[-1])
+    earth_radius_meters = 6_371_000
+    origin_lat, origin_lon = points[0]
+    latitude_scale = math.pi * earth_radius_meters / 180
+    longitude_scale = latitude_scale * math.cos(math.radians(sum(lat for lat, _ in points) / len(points)))
+    projected = [
+        (
+            (lon - origin_lon) * longitude_scale,
+            (lat - origin_lat) * latitude_scale,
+        )
+        for lat, lon in points
+    ]
+
+    keep = [False] * len(points)
+    keep[0] = keep[-1] = True
+    sections = [(0, len(points) - 1)]
+
+    while sections:
+        start_index, end_index = sections.pop()
+        start_x, start_y = projected[start_index]
+        end_x, end_y = projected[end_index]
+        segment_x = end_x - start_x
+        segment_y = end_y - start_y
+        segment_length_squared = segment_x * segment_x + segment_y * segment_y
+
+        max_distance = 0.0
+        max_index = None
+        for index in range(start_index + 1, end_index):
+            point_x, point_y = projected[index]
+            if segment_length_squared == 0:
+                distance = math.hypot(point_x - start_x, point_y - start_y)
+            else:
+                projection = (
+                    (point_x - start_x) * segment_x
+                    + (point_y - start_y) * segment_y
+                ) / segment_length_squared
+                projection = min(1.0, max(0.0, projection))
+                closest_x = start_x + projection * segment_x
+                closest_y = start_y + projection * segment_y
+                distance = math.hypot(point_x - closest_x, point_y - closest_y)
+
+            if distance > max_distance:
+                max_distance = distance
+                max_index = index
+
+        if max_index is not None and max_distance > MAX_DEVIATION_METERS:
+            keep[max_index] = True
+            sections.append((start_index, max_index))
+            sections.append((max_index, end_index))
 
     compact = []
-    prev = None
-    for lat, lon in sampled:
+    previous_pair = None
+    for keep_point, (lat, lon) in zip(keep, points):
+        if not keep_point:
+            continue
         pair = (round(lat, ROUND_DIGITS), round(lon, ROUND_DIGITS))
-        if pair != prev:
+        if pair != previous_pair:
             compact.append([pair[0], pair[1]])
-            prev = pair
+            previous_pair = pair
     return compact
 
 

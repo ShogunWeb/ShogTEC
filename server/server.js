@@ -383,6 +383,7 @@ app.get('/status', (req, res) => {
   res.json({
     status: 'okdoki',
     uptime: process.uptime(),
+    refreshIntervals: CONFIG.refreshIntervals,
     lastUpdate: cachedData.lastUpdate,
       dataAvailable: {
 	  vehicles: cachedData.vehicles !== null,

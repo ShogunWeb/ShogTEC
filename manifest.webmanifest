@@ -1,6 +1,6 @@
 {
-  "name": "TECmap",
-  "short_name": "TECmap",
+  "name": "ShogTEC",
+  "short_name": "ShogTEC",
   "description": "Carte des transports en commun TEC en temps reel.",
   "start_url": "./tecmap.html",
   "scope": "./",

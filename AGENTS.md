@@ -2,7 +2,7 @@
 
 ## Project overview
 
-TECmap is a lightweight public-transit map for TEC in Belgium. The frontend is plain HTML, CSS, and JavaScript (no frontend framework). It combines locally generated static GTFS assets with live GTFS-Realtime data.
+ShogTEC is a lightweight public-transit map for TEC in Belgium. The frontend is plain HTML, CSS, and JavaScript (no frontend framework). It combines locally generated static GTFS assets with live GTFS-Realtime data.
 
 ## Architecture and important files
 
@@ -59,7 +59,7 @@ The server README documents Node.js 24.13.1 as the tested version. The project h
 - `config.js` is the source of truth for browser URLs and vehicle refresh rate (10 seconds); trip updates refresh every 30 seconds as configured in `tecmap.html`.
 - The frontend expects the cache server endpoints `/api/vehicles`, `/api/alerts/raw`, and `/api/delays`. The server also exposes `/api/alerts`, `/`, and `/status`; `/status` reports effective refresh intervals and last update times.
 - `TILE_API_KEY` in `config.js` is optional; the README describes OpenStreetMap as the default map layer.
-- The version line displays an approximate `navigator.storage.estimate()` usage for the site origin. If that reports zero, the UI sums available `Content-Length` headers for TECmap service-worker cache entries, reading Cache Storage directly or via a message to the active service worker when needed. Unknown entry sizes are marked with `+`; this is not the exact disk usage.
+- The version line displays an approximate `navigator.storage.estimate()` usage for the site origin. If that reports zero, the UI sums available `Content-Length` headers for ShogTEC service-worker cache entries, reading Cache Storage directly or via a message to the active service worker when needed. Unknown entry sizes are marked with `+`; this is not the exact disk usage.
 - On the user's iPhone, Lockdown Mode made `navigator.serviceWorker` and `window.caches` unavailable in both the installed web app and a normal Safari tab; a site-specific Lockdown Mode exception restored the measurement. The page cannot measure the cache while those APIs are unavailable, and it cannot detect Lockdown Mode itself.
 - Avoid running the live GTFS sync unless explicitly needed: it makes external requests and writes generated files under `data/`.
 

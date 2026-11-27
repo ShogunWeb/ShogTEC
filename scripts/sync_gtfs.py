@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Download the latest TEC GTFS feed and regenerate TECmap's local data assets."""
+"""Download the latest TEC GTFS feed and regenerate ShogTEC's local data assets."""
 
 from __future__ import annotations
 

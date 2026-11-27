@@ -1,17 +1,17 @@
-## Introduction to tecmap
+## Introduction to ShogTEC
 "Transports en Commun" map is a lightweight map to locate bus in real-time using open data. On the map below, bus coordinates are refreshed every 30 seconds and are colored according to delay (by comparing real-time data to static theoretical timetables which can be displayed by clicking on one bus: red > 5 minutes, 0 < orange < 5 minutes, green on time). You can get timelines and other details when you click on a bus marker on the map.
-![tecmap](tecmap-liege.jpg?raw=true "Tecmap in Liège, Belgium")
+![ShogTEC](tecmap-liege.jpg?raw=true "ShogTEC in Liège, Belgium")
 
 A simple filter (by bus line numbers) allows to only display the buses of interest (e.g. "21 58" will display buses following lines 21 and 58; "2?guill 58?guill" will display buses of line 2 that will pass through a stop which name includes "guill" as well as expected time schedule, and buses nr 58 that will pass through a stop name including "guill" which allow to organize your commute based on real-time data).
-![tecmap](tecmap-filters.jpg?raw=true "Filter in Tecmap")
+![ShogTEC](tecmap-filters.jpg?raw=true "Filter in ShogTEC")
 
 Alerts (disruptions) can be displayed for each line numbers to know about cancelled trips and stops.
-![tecmap](tecmap-alerts.jpg?raw=true "Alerts in Tecmap")
+![ShogTEC](tecmap-alerts.jpg?raw=true "Alerts in ShogTEC")
 
 The typical use cases include individuals wanting to know if their buses are on time to plan their trips, e.g. someone at home who doesn't want to wait 10 minutes outside in the cold, or someone who has the possibility of taking several different buses and wants to know which one will arrive first, or someone at their desk who wants to optimize their life and work until the last minute before their bus comes, or someone having a good time with a loved one but not wanting to miss the very last bus ;) or wanting to wait in a shady place rather than at the bus stop in direct sunlight. Another use case is someone who wants to discover new places they can reach with public transport without knowing the existing routes a priori. Please note no automatic planning is provided, you must use your mental calculation skills to construct your route, which in principle consumes less energy than running a routing algorithm on GAFAM servers. ;)
 
 ## Tech stack
-tecmap has been developed using HTML, CSS and JavaScript without a web framework. Static routes, stops and schedules are generated locally from TEC GTFS data; vehicle positions, trip updates and service alerts come from Belgian Mobility's GTFS-Realtime API in protobuf format.
+ShogTEC has been developed using HTML, CSS and JavaScript without a web framework. Static routes, stops and schedules are generated locally from TEC GTFS data; vehicle positions, trip updates and service alerts come from Belgian Mobility's GTFS-Realtime API in protobuf format.
 
 
 ## TEC data from Belgian Mobility

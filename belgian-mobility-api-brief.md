@@ -10,7 +10,7 @@
 
 The public catalog states that static GTFS is updated daily and GTFS-Realtime feeds approximately every 30 seconds. Standard registered access is listed as 12,000 requests/day and 500 requests/minute. Public reuse requires CC BY 4.0 attribution.
 
-## TEC endpoints used by TECmap
+## TEC endpoints used by ShogTEC
 
 | Endpoint | Format | Purpose | Refresh |
 |---|---|---|---|
@@ -28,9 +28,9 @@ curl \
   "https://api-management-discovery-production.azure-api.net/api/gtfs/feed/tec/static"
 ```
 
-The app's backend proxy decodes the protobuf feeds and returns the formats already consumed by the map. The static GTFS sync script downloads the ZIP and regenerates the local stop, route, schedule and line-shape assets.
+ShogTEC's backend proxy decodes the protobuf feeds and returns the formats already consumed by the map. The static GTFS sync script downloads the ZIP and regenerates the local stop, route, schedule and line-shape assets.
 
 ## Notes
 
-- The API documentation also describes direct GTFS-RT protobuf endpoints and SIRI feeds; TECmap currently uses the unified `/api/gtfs/feed/tec/...` routes.
+- The API documentation also describes direct GTFS-RT protobuf endpoints and SIRI feeds; ShogTEC currently uses the unified `/api/gtfs/feed/tec/...` routes.
 - The portal's terms require attribution such as `Source: LETEC (TEC) – Belgian Mobility Open Data – <update date>`.

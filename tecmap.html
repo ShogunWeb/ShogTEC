@@ -3,7 +3,7 @@
     <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TECmap : Carte des transports en commun en temps réel</title>
+    <title>ShogTEC : Carte des transports en commun en temps réel</title>
 
     <link rel="preconnect" href="https://tile.thunderforest.com">
     <link rel="preconnect" href="https://gtfsrt.tectime.be">
@@ -26,7 +26,7 @@
     <meta name="mobile-web-app-capable" content="yes">
 	<meta name="apple-mobile-web-app-capable" content="yes">
 	<meta name="apple-mobile-web-app-status-bar-style" content="default">
-	<meta name="apple-mobile-web-app-title" content="TECmap">
+	<meta name="apple-mobile-web-app-title" content="ShogTEC">
     
     <!-- Leaflet CSS & JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
@@ -495,7 +495,7 @@
 	    <label for="baseMapSelect">Fond</label>
 	    <select id="baseMapSelect" onchange="updateBaseMap()"></select>
 	    <a class="filter-help" href="#" onclick="showColorLegendInPanel()" title="Aide / Légende">Aide / Légende</a>
-	    <button type="button" id="clear-app-cache-button" class="filter-action" onclick="clearAppCache()" title="Supprimer le cache hors ligne de TECmap">Vider le cache</button>
+	    <button type="button" id="clear-app-cache-button" class="filter-action" onclick="clearAppCache()" title="Supprimer le cache hors ligne de ShogTEC">Vider le cache</button>
 	    <p id="settings-version-mobile" class="settings-version mobile-only" aria-live="polite"></p>
 	</div>
 	<p class="filter-stats desktop-only">Bus visibles : <span id="busCount">0</span></p>
@@ -686,12 +686,12 @@
 	async function clearAppCache() {
 	    const cacheStorage = window.caches;
 	    if (!cacheStorage || typeof cacheStorage.keys !== "function") {
-		window.alert("Ce navigateur ne permet pas d'accéder au cache hors ligne de TECmap.");
+		window.alert("Ce navigateur ne permet pas d'accéder au cache hors ligne de ShogTEC.");
 		return;
 	    }
 
 	    const confirmed = window.confirm(
-		"Vider le cache hors ligne de TECmap ? Les fichiers seront retéléchargés lors des prochaines visites. "
+		"Vider le cache hors ligne de ShogTEC ? Les fichiers seront retéléchargés lors des prochaines visites. "
 		    + "Tes préférences seront conservées. Le cache HTTP général du navigateur ne peut pas être vidé ici."
 	    );
 	    if (!confirmed) return;
@@ -703,18 +703,18 @@
 		const cacheNames = (await cacheStorage.keys()).filter(name => name.startsWith("tecmap-shell-"));
 		const deletedCaches = await Promise.all(cacheNames.map(name => cacheStorage.delete(name)));
 		if (deletedCaches.some(deleted => !deleted)) {
-		    throw new Error("Un ou plusieurs caches TECmap n'ont pas pu être supprimés.");
+		    throw new Error("Un ou plusieurs caches ShogTEC n'ont pas pu être supprimés.");
 		}
 
 		window.alert(
 		    cacheNames.length > 0
-			? `Cache hors ligne TECmap vidé (${cacheNames.length} cache${cacheNames.length > 1 ? "s" : ""}). L'application va maintenant recharger les données.`
-			: "Aucun cache hors ligne TECmap à vider. L'application va recharger les données."
+			? `Cache hors ligne ShogTEC vidé (${cacheNames.length} cache${cacheNames.length > 1 ? "s" : ""}). L'application va maintenant recharger les données.`
+			: "Aucun cache hors ligne ShogTEC à vider. L'application va recharger les données."
 		);
 		window.location.reload();
 	    } catch (error) {
-		console.error("Impossible de vider le cache de TECmap", error);
-		window.alert("Impossible de vider le cache hors ligne de TECmap. Consulte la console pour plus de détails.");
+		console.error("Impossible de vider le cache de ShogTEC", error);
+		window.alert("Impossible de vider le cache hors ligne de ShogTEC. Consulte la console pour plus de détails.");
 	    } finally {
 		if (button) button.disabled = false;
 	    }
@@ -1344,7 +1344,7 @@
 	     l'heure d'arrivée prévue des bus actuellement en chemin, en ajoutant quelques caractères de son nom par exemple "<b>58?guill B2?guill</b>" pour l'arrêt Guillemins. Les noms des arrêts sont ceux affichés dans le panel "Voir les horaires temps-réel de ce bus".</p>
 	 
 	 <h4>Code source et données</<h4>
-	     <p>Le code-source de ce prototype est disponible sur <a href="https://github.com/rmaree/tecmap">GitHub</a>.
+	     <p>Le code-source de ce prototype est disponible sur <a href="https://github.com/ShogunWeb/ShogTEC">GitHub</a>.
 		 Les données temps-réel proviennent du <a href="https://www.letec.be/View/Open_Data_of_TEC/4296">site open data LETEC</a>.
 		 Le serveur est hébergé par le SEGI de l'ULiège.
 		 Ce projet personnel n'est pas un outil officiel de LETEC ni de l'ULiège. </p>

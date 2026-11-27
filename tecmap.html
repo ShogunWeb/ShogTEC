@@ -706,12 +706,12 @@
 		    throw new Error("Un ou plusieurs caches TECmap n'ont pas pu être supprimés.");
 		}
 
-		await updateLocalCacheUsage();
 		window.alert(
 		    cacheNames.length > 0
-			? `Cache hors ligne TECmap vidé (${cacheNames.length} cache${cacheNames.length > 1 ? "s" : ""}).`
-			: "Aucun cache hors ligne TECmap à vider."
+			? `Cache hors ligne TECmap vidé (${cacheNames.length} cache${cacheNames.length > 1 ? "s" : ""}). L'application va maintenant recharger les données.`
+			: "Aucun cache hors ligne TECmap à vider. L'application va recharger les données."
 		);
+		window.location.reload();
 	    } catch (error) {
 		console.error("Impossible de vider le cache de TECmap", error);
 		window.alert("Impossible de vider le cache hors ligne de TECmap. Consulte la console pour plus de détails.");

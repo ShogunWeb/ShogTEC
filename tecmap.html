@@ -495,6 +495,7 @@
 	    <label for="baseMapSelect">Fond</label>
 	    <select id="baseMapSelect" onchange="updateBaseMap()"></select>
 	    <a class="filter-help" href="#" onclick="showColorLegendInPanel()" title="Aide / Légende">Aide / Légende</a>
+	    <button type="button" id="clear-app-cache-button" class="filter-action" onclick="clearAppCache()" title="Supprimer le cache hors ligne de TECmap">Vider le cache</button>
 	    <p id="settings-version-mobile" class="settings-version mobile-only" aria-live="polite"></p>
 	</div>
 	<p class="filter-stats desktop-only">Bus visibles : <span id="busCount">0</span></p>
@@ -680,6 +681,43 @@
 	    }
 
 	    renderAppVersion();
+	}
+
+	async function clearAppCache() {
+	    const cacheStorage = window.caches;
+	    if (!cacheStorage || typeof cacheStorage.keys !== "function") {
+		window.alert("Ce navigateur ne permet pas d'accéder au cache hors ligne de TECmap.");
+		return;
+	    }
+
+	    const confirmed = window.confirm(
+		"Vider le cache hors ligne de TECmap ? Les fichiers seront retéléchargés lors des prochaines visites. "
+		    + "Tes préférences seront conservées. Le cache HTTP général du navigateur ne peut pas être vidé ici."
+	    );
+	    if (!confirmed) return;
+
+	    const button = document.getElementById("clear-app-cache-button");
+	    if (button) button.disabled = true;
+
+	    try {
+		const cacheNames = (await cacheStorage.keys()).filter(name => name.startsWith("tecmap-shell-"));
+		const deletedCaches = await Promise.all(cacheNames.map(name => cacheStorage.delete(name)));
+		if (deletedCaches.some(deleted => !deleted)) {
+		    throw new Error("Un ou plusieurs caches TECmap n'ont pas pu être supprimés.");
+		}
+
+		await updateLocalCacheUsage();
+		window.alert(
+		    cacheNames.length > 0
+			? `Cache hors ligne TECmap vidé (${cacheNames.length} cache${cacheNames.length > 1 ? "s" : ""}).`
+			: "Aucun cache hors ligne TECmap à vider."
+		);
+	    } catch (error) {
+		console.error("Impossible de vider le cache de TECmap", error);
+		window.alert("Impossible de vider le cache hors ligne de TECmap. Consulte la console pour plus de détails.");
+	    } finally {
+		if (button) button.disabled = false;
+	    }
 	}
 
 	renderAppVersion();

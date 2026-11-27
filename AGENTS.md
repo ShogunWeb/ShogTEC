@@ -53,10 +53,10 @@ The server README documents Node.js 24.13.1 as the tested version. The project h
 ## Configuration facts and caveats
 
 - Put the subscription key in `server/.env` as `BMC_PARTNER_KEY` (legacy `API_KEY` is also accepted). Never copy a real key into source, logs, browser code, or documentation.
-- `server/server.js` supports `BMC_API_BASE_URL` and `VERBOSE_LOGGING`; its upstream refresh intervals are currently fixed at 30 seconds in code.
+- `server/server.js` supports `BMC_API_BASE_URL`, `VERBOSE_LOGGING`, and `VEHICLE_REFRESH_INTERVAL_MS` (10 seconds by default); upstream alert and trip-update feeds refresh every 30 seconds.
 - `PORT` is read before `loadEnvFile(".env")` runs. If a custom port is needed, supply it in the process environment; do not assume `PORT` in `server/.env` takes effect in the current implementation.
 - `RT_VEHICLE_API_URL`, `RT_ALERT_API_URL`, `RT_UPDATE_API_URL`, and `RT_REFRESH_RATE` are browser settings defined in `config.js`; `server/server.js` does not read them from `.env`. Changing these names in the server env file does not redirect frontend requests.
-- `server/.env.example` currently includes sample `RT_*` values for reference. Treat `config.js` as the source of truth for the browser URLs and refresh rate.
+- `config.js` is the source of truth for browser URLs and vehicle refresh rate (10 seconds); trip updates refresh every 30 seconds as configured in `tecmap.html`.
 - The frontend expects the cache server endpoints `/api/vehicles`, `/api/alerts/raw`, and `/api/delays`. The server also exposes `/api/alerts`, `/`, and `/status`.
 - `TILE_API_KEY` in `config.js` is optional; the README describes OpenStreetMap as the default map layer.
 - The version line displays an approximate `navigator.storage.estimate()` usage for the site origin. If that reports zero, the UI sums available `Content-Length` headers for TECmap service-worker cache entries, reading Cache Storage directly or via a message to the active service worker when needed. Unknown entry sizes are marked with `+`; this is not the exact disk usage.

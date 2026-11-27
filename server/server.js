@@ -15,12 +15,19 @@ const API_BASE_URL = (
   process.env.BMC_API_BASE_URL || 'https://api-management-discovery-production.azure-api.net'
 ).replace(/\/+$/, '');
 
+const vehicleRefreshInterval = Number.parseInt(
+  process.env.VEHICLE_REFRESH_INTERVAL_MS || '10000',
+  10
+);
+
 const CONFIG = {
     vehicleUrl: `${API_BASE_URL}/api/gtfs/feed/tec/rt/vehicle-position?format=protobuf`,
     alertUrl: `${API_BASE_URL}/api/gtfs/feed/tec/rt/alert?format=protobuf`,
     updateUrl: `${API_BASE_URL}/api/gtfs/feed/tec/rt/trip-update?format=protobuf`,
     refreshIntervals: {
-      vehicles: 30_000,
+      vehicles: Number.isFinite(vehicleRefreshInterval) && vehicleRefreshInterval >= 1000
+        ? vehicleRefreshInterval
+        : 10_000,
       alerts: 30_000,
       updates: 30_000
     },
@@ -68,7 +75,11 @@ function fetchOptions() {
 
 // ----------------------------------------------------------------------------------
 // Get and convert vehicles data from GTFS protobuf to JSON
+let vehiclesFetchInFlight = false;
+
 async function fetchAndConvertVehicles() {
+  if (vehiclesFetchInFlight) return cachedData.vehicles;
+  vehiclesFetchInFlight = true;
   try {
     log(`[${new Date().toISOString()}] Fetching vehicle data...`);
     const response = await fetch(CONFIG.vehicleUrl, fetchOptions());
@@ -123,6 +134,8 @@ async function fetchAndConvertVehicles() {
   } catch (error) {
     console.error('Error fetching vehicle data:', error.message);
     return null;
+  } finally {
+    vehiclesFetchInFlight = false;
   }
 }
 
@@ -306,6 +319,7 @@ app.get('/api/vehicles', (req, res) => {
       message: 'Server is initializing, please retry in a few seconds'
     });
   }
+  res.set('Cache-Control', 'no-store');
   res.json({
     data: cachedData.vehicles,
     lastUpdate: cachedData.lastUpdate.vehicles,

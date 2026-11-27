@@ -73,6 +73,11 @@ def shape_signature(polyline: list[list[float]]) -> str:
     return f"{start[0]},{start[1]}->{end[0]},{end[1]}:{len(polyline)}"
 
 
+def region_for_route_id(route_id: str) -> str | None:
+    route_code = route_id.rsplit(":", maxsplit=1)[-1]
+    return REGION_BY_ROUTE_PREFIX.get(route_code[:1].upper())
+
+
 def main() -> None:
     for required in [ROUTES_TXT, TRIPS_TXT, SHAPES_TXT]:
         if not required.exists():
@@ -107,7 +112,7 @@ def main() -> None:
             if not line:
                 continue
 
-            region = REGION_BY_ROUTE_PREFIX.get(route_id[0].upper())
+            region = region_for_route_id(route_id)
             if not region:
                 continue
 
